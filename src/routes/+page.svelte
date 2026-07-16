@@ -64,14 +64,14 @@
 		const d = new Date(dateStr);
 		const now = new Date();
 		const sec = Math.floor((now.getTime() - d.getTime()) / 1000);
-		if (sec < 60) return 'gerade';
+		if (sec < 60) return 'just now';
 		const min = Math.floor(sec / 60);
-		if (min < 60) return `vor ${min}m`;
+		if (min < 60) return `${min}m ago`;
 		const h = Math.floor(min / 60);
-		if (h < 24) return `vor ${h}h`;
+		if (h < 24) return `${h}h ago`;
 		const days = Math.floor(h / 24);
-		if (days < 30) return `vor ${days}T`;
-		return d.toLocaleDateString('de-DE');
+		if (days < 30) return `${days}d ago`;
+		return d.toLocaleDateString('en-US');
 	}
 
 	function fmt(n: number): string {
@@ -204,9 +204,9 @@
 			headers: { 'Accept': 'application/vnd.github.v3+json' }
 		});
 		if (!res.ok) {
-			if (res.status === 403) throw new Error('API-Limit erreicht. Kurz warten.');
-			if (res.status === 404) throw new Error('Benutzer nicht gefunden.');
-			throw new Error(`Fehler ${res.status}`);
+			if (res.status === 403) throw new Error('API rate limit reached. Please wait.');
+			if (res.status === 404) throw new Error('User not found.');
+			throw new Error(`Error ${res.status}`);
 		}
 		return res.json();
 	}
@@ -232,7 +232,7 @@
 		} catch (e: any) {
 			isLoading = false;
 			showTerminal = false;
-			errorMsg = e.message || 'Fehler beim Laden';
+			errorMsg = e.message || 'Error loading profile';
 		}
 	}
 
@@ -243,11 +243,11 @@
 		profileData = null;
 
 		const lines = [
-			{ text: `fetch github.com/${u} ...`, cls: 'cmd', delay: 200 },
-			{ text: '> verbindung hergestellt', cls: 'ok', delay: 400 },
-			{ text: '> empfange profil: repos, sprachen, events', cls: 'dim', delay: 500 },
+			{ text: `fetching github.com/${u} ...`, cls: 'cmd', delay: 200 },
+			{ text: '> connection established', cls: 'ok', delay: 400 },
+			{ text: '> receiving profile: repos, languages, events', cls: 'dim', delay: 500 },
 			{ text: '', cls: '', delay: 300 },
-			{ text: 'fertig. rendere dashboard.', cls: 'highlight', delay: 600 },
+			{ text: 'done. rendering dashboard.', cls: 'highlight', delay: 600 },
 		];
 
 		showTerminal = true;
@@ -362,14 +362,14 @@
 			case 'PushEvent': {
 				const branch = (e.payload.ref || '').replace('refs/heads/', '');
 				const commits = e.payload.commits || [];
-				return `<strong>${esc(e.repo.name)}</strong> &middot; ${commits.length} Commit${commits.length !== 1 ? 's' : ''} nach <strong>${esc(branch)}</strong>`;
+				return `<strong>${esc(e.repo.name)}</strong> &middot; ${commits.length} Commit${commits.length !== 1 ? 's' : ''} to <strong>${esc(branch)}</strong>`;
 			}
 			case 'CreateEvent':
-				return `<strong>${esc(e.repo.name)}</strong> &middot; ${e.payload.ref_type || ''} <strong>${esc(e.payload.ref || '')}</strong> erstellt`;
+				return `<strong>${esc(e.repo.name)}</strong> &middot; ${e.payload.ref_type || ''} <strong>${esc(e.payload.ref || '')}</strong> created`;
 			case 'IssuesEvent':
 				return `<strong>${esc(e.repo.name)}</strong> &middot; Issue ${e.payload.action || ''}: <strong>${esc(e.payload.issue?.title || '')}</strong>`;
 			case 'IssueCommentEvent':
-				return `<strong>${esc(e.repo.name)}</strong> &middot; Kommentar zu Issue #${e.payload.issue?.number || ''}`;
+				return `<strong>${esc(e.repo.name)}</strong> &middot; Comment on issue #${e.payload.issue?.number || ''}`;
 			case 'PullRequestEvent':
 				return `<strong>${esc(e.repo.name)}</strong> &middot; PR ${e.payload.action || ''}: <strong>${esc(e.payload.pull_request?.title || '')}</strong>`;
 			case 'WatchEvent':
@@ -394,7 +394,7 @@
 	// EXPORT
 	// ========================================
 	function exportHTML() {
-		if (!profileData) { showToast('Keine Daten zum Exportieren.'); return; }
+		if (!profileData) { showToast('No data to export.'); return; }
 		const u = profileData.user;
 		const repos = sortedRepos.slice(0, 20);
 
@@ -404,16 +404,16 @@
 			? langEntries.map(([l, c]) =>
 				`<div style="margin-bottom:10px;"><div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px;"><span>${esc(l)}</span><span style="color:#888;">${c} Repos</span></div><div style="height:6px;background:#eee;border-radius:3px;overflow:hidden;"><div style="height:100%;width:${(c / langMax) * 100}%;background:${langColor(l)};border-radius:3px;"></div></div></div>`
 			).join('')
-			: '<p style="color:#888;">Keine Sprachen erfasst.</p>';
+			: '<p style="color:#888;">No languages detected.</p>';
 
 		const repoHtml = repos.length
 			? repos.map(r =>
 				`<div style="padding:14px;border:1px solid #e5e5e5;border-radius:6px;"><div style="font-weight:600;margin-bottom:4px;">${esc(r.name)}</div>${r.description ? `<div style="font-size:13px;color:#666;margin-bottom:8px;">${esc(r.description)}</div>` : ''}<div style="font-size:12px;color:#999;">\u2605 ${fmt(r.stargazers_count)} &middot; ${r.language || ''}</div></div>`
 			).join('\n')
-			: '<p style="color:#888;">Keine öffentlichen Repos.</p>';
+			: '<p style="color:#888;">No public repositories.</p>';
 
 		const exportHtml = `<!DOCTYPE html>
-<html lang="de">
+<html lang="en">
 <head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>${esc(u.name || u.login)} — Portfolio</title>
 <link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -422,16 +422,16 @@
 <div class="w">
 <h1>${esc(u.name || u.login)}</h1>
 <div class="sub">${u.bio ? esc(u.bio) : ''}</div>
-<div class="stat"><div><span>${fmt(u.public_repos)}</span> <span>Repos</span></div><div><span>${fmt(u.followers)}</span> <span>Follower</span></div><div><span>${fmt(totalStars)}</span> <span>Stars</span></div></div>
+<div class="stat"><div><span>${fmt(u.public_repos)}</span> <span>Repos</span></div><div><span>${fmt(u.followers)}</span> <span>Followers</span></div><div><span>${fmt(totalStars)}</span> <span>Stars</span></div></div>
 <div style="margin-bottom:32px;"><a href="${esc(u.html_url)}" target="_blank">GitHub</a>${u.blog ? ` &middot; <a href="${u.blog.indexOf('http') === 0 ? esc(u.blog) : 'https://' + esc(u.blog)}" target="_blank">Website</a>` : ''}${u.twitter_username ? ` &middot; <a href="https://x.com/${esc(u.twitter_username)}" target="_blank">X</a>` : ''}</div>
-<h2>Sprachen</h2>${langHtml}
+<h2>Languages</h2>${langHtml}
 <h2>Repositories</h2><div class="grid">${repoHtml}</div>
-<footer>Generiert von DevShowcase &middot; github.com/${esc(u.login)}</footer>
+<footer>Generated by DevShowcase &middot; github.com/${esc(u.login)}</footer>
 </div>
 </body></html>`;
 
 		downloadFile(exportHtml, `${u.login}-portfolio.html`, 'text/html');
-		showToast('HTML exportiert');
+		showToast('HTML exported');
 	}
 
 	function downloadFile(content: string | Blob, filename: string, mimeType: string) {
@@ -473,16 +473,16 @@
 
 	<!-- Search Section -->
 	<div class="search-section" style="display: {profileData || isLoading || showTerminal ? 'none' : 'block'}">
-		<h1>GitHub Profil als Portfolio</h1>
-		<p class="sub">Gib einen GitHub-Usernamen ein und sieh dir die Daten an — Repos, Sprachen, Aktivität.</p>
+		<h1>GitHub Profile as Portfolio</h1>
+		<p class="sub">Enter a GitHub username to see repos, languages, and activity at a glance.</p>
 		<div class="search-row">
 			<input
 				type="text"
 				bind:value={username}
-				placeholder="z.B. torvalds"
+				placeholder="e.g. torvalds"
 				onkeydown={(e) => { if (e.key === 'Enter') loadProfile(username); }}
 			/>
-			<button onclick={() => loadProfile(username)} disabled={!username.trim()}>Analysieren</button>
+			<button onclick={() => loadProfile(username)} disabled={!username.trim()}>Analyze</button>
 		</div>
 		<div class="examples">
 			<button onclick={() => loadExample('torvalds')}>torvalds</button>
@@ -495,14 +495,14 @@
 	<!-- Loading State -->
 	<div class="state" class:active={isLoading}>
 		<div class="loading-wrap">
-			<p style="color:var(--dim);font-family:var(--font-mono);font-size:14px;">Lade Profil...</p>
+			<p style="color:var(--dim);font-family:var(--font-mono);font-size:14px;">Loading profile...</p>
 		</div>
 	</div>
 
 	<!-- Error State -->
 	<div class="state" class:active={!!errorMsg && !showTerminal && !isLoading}>
 		<div class="error-wrap">
-			<h3>Fehler</h3>
+			<h3>Error</h3>
 			<p>{errorMsg}</p>
 		</div>
 	</div>
@@ -512,7 +512,7 @@
 		<div class="profile active">
 			<div class="export-bar">
 				<button class="export-btn" onclick={exportHTML}><span class="key">&darr;</span> HTML</button>
-				<button class="export-btn" onclick={() => showToast('PNG-Export folgt in Kürze.')}><span class="key">&darr;</span> PNG</button>
+				<button class="export-btn" onclick={() => showToast('PNG export coming soon.')}><span class="key">&darr;</span> PNG</button>
 			</div>
 
 			<!-- Profile Header -->
@@ -550,7 +550,7 @@
 
 			<!-- Languages -->
 			<div class="section">
-				<div class="section-title">Sprachen</div>
+				<div class="section-title">Languages</div>
 				{#if languageData.items.length > 0}
 					<div class="lang-grid">
 						{#each languageData.items as [lang, count]}
@@ -568,7 +568,7 @@
 						{/each}
 					</div>
 				{:else}
-					<p style="color:var(--dim);font-size:13px;">Keine Sprachen erkannt.</p>
+					<p style="color:var(--dim);font-size:13px;">No languages detected.</p>
 				{/if}
 			</div>
 
@@ -605,13 +605,13 @@
 						{/each}
 					</div>
 				{:else}
-					<p style="color:var(--dim);font-size:13px;">Keine öffentlichen Repos.</p>
+					<p style="color:var(--dim);font-size:13px;">No public repositories.</p>
 				{/if}
 			</div>
 
 			<!-- Activity -->
 			<div class="section">
-				<div class="section-title">Aktivität</div>
+				<div class="section-title">Activity</div>
 				{#if profileData.events.length > 0}
 					{#each profileData.events.slice(0, 10) as e}
 						<div class="activity-item">
@@ -621,7 +621,7 @@
 						</div>
 					{/each}
 				{:else}
-					<p style="color:var(--dim);font-size:13px;">Keine öffentliche Aktivität.</p>
+					<p style="color:var(--dim);font-size:13px;">No public activity.</p>
 				{/if}
 			</div>
 		</div>
