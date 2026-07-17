@@ -52,6 +52,7 @@
 	let toastVisible = $state(false);
 	let terminalLines = $state<{ text: string; cls: string }[]>([]);
 	let imagesLoaded = $state(0);
+	let repoFilter = $state('');
 
 	// ========================================
 	// HELPERS
@@ -294,6 +295,7 @@
 		profileData = null;
 		errorMsg = '';
 		username = '';
+		repoFilter = '';
 		fadeOutAmbient();
 	}
 
@@ -312,6 +314,17 @@
 		let s = 0;
 		for (const r of sortedRepos) s += r.stargazers_count;
 		return s;
+	});
+
+	let filteredRepos = $derived.by(() => {
+		if (!repoFilter.trim()) return sortedRepos;
+		const q = repoFilter.toLowerCase();
+		return sortedRepos.filter(r =>
+			r.name.toLowerCase().includes(q) ||
+			(r.description && r.description.toLowerCase().includes(q)) ||
+			(r.topics && r.topics.some(t => t.toLowerCase().includes(q))) ||
+			(r.language && r.language.toLowerCase().includes(q))
+		);
 	});
 
 	let languageData = $derived.by(() => {
@@ -512,7 +525,7 @@
 		<div class="profile active">
 			<div class="export-bar">
 				<button class="export-btn" onclick={exportHTML}><span class="key">&darr;</span> HTML</button>
-				<button class="export-btn" onclick={() => showToast('PNG export coming soon.')}><span class="key">&darr;</span> PNG</button>
+				<button class="export-btn" onclick={resetApp}>← New search</button>
 			</div>
 
 			<!-- Profile Header -->
@@ -574,10 +587,18 @@
 
 			<!-- Repositories -->
 			<div class="section">
-				<div class="section-title">Repositories</div>
-				{#if sortedRepos.length > 0}
+				<div class="section-title">Repositories ({filteredRepos.length})</div>
+				{#if sortedRepos.length > 5}
+					<div class="repo-filter">
+						<input type="text" bind:value={repoFilter} placeholder="Filter repos by name, language, topic..." />
+						{#if repoFilter}
+							<button class="repo-filter-clear" onclick={() => repoFilter = ''} aria-label="Clear filter">×</button>
+						{/if}
+					</div>
+				{/if}
+				{#if filteredRepos.length > 0}
 					<div class="repo-list">
-						{#each sortedRepos as r}
+						{#each filteredRepos as r}
 							<a href={r.html_url} target="_blank" class="repo-card">
 								<div class="name">{r.name}</div>
 								{#if r.description}
@@ -605,7 +626,7 @@
 						{/each}
 					</div>
 				{:else}
-					<p style="color:var(--dim);font-size:13px;">No public repositories.</p>
+					<p style="color:var(--dim);font-size:13px;">{repoFilter ? 'No repos match your filter.' : 'No public repositories.'}</p>
 				{/if}
 			</div>
 
@@ -628,7 +649,7 @@
 	{/if}
 
 	<footer>
-		<a href="https://tedhermes.pythonanywhere.com">DevShowcase</a> &middot; GitHub API &middot; Client-side
+		<a href="https://github.com/tedhermes/devshowcase">DevShowcase</a> &middot; GitHub API &middot; Client-side
 	</footer>
 </div>
 

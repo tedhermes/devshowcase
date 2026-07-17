@@ -377,6 +377,39 @@ footer a:hover { color: var(--fg); }
 }
 .export-btn .key { color: var(--dim); font-weight: 400; }
 
+/* REPO FILTER */
+.repo-filter {
+	position: relative;
+	margin-bottom: 12px;
+}
+.repo-filter input {
+	width: 100%;
+	padding: 8px 32px 8px 12px;
+	border: none;
+	border-radius: var(--radius);
+	font-family: var(--font-mono);
+	font-size: 13px;
+	color: var(--fg);
+	background: var(--surface);
+	box-shadow: 0px 0px 0px 1px var(--border);
+	outline: none;
+	transition: box-shadow 120ms ease;
+}
+.repo-filter input:focus { box-shadow: 0px 0px 0px 2px var(--accent); }
+.repo-filter input::placeholder { color: var(--dim); }
+.repo-filter-clear {
+	position: absolute; right: 8px; top: 50%;
+	transform: translateY(-50%);
+	background: none; border: none;
+	color: var(--dim);
+	font-size: 16px;
+	cursor: pointer;
+	padding: 2px 6px;
+	border-radius: 4px;
+	line-height: 1;
+}
+.repo-filter-clear:hover { color: var(--fg); background: rgba(0,0,0,0.05); }
+
 @media (max-width: 600px) {
 	.wrap { padding: 0 16px; }
 	header { margin-bottom: 32px; }
