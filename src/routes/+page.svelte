@@ -212,17 +212,20 @@
 		return res.json();
 	}
 
-	async function actuallyLoadProfile(u: string) {
-		isLoading = true;
-		try {
-			const [user, repos, events] = await Promise.all([
-				fetchGH(`https://api.github.com/users/${u}`),
-				fetchGH(`https://api.github.com/users/${u}/repos?per_page=100&sort=updated`),
-				fetchGH(`https://api.github.com/users/${u}/events?per_page=10`),
-			]) as [GitHubUser, GitHubRepo[], GitHubEvent[]];
+		async function actuallyLoadProfile(u: string) {
+			isLoading = true;
+			try {
+				const [user, repos, eventsPg1, eventsPg2, eventsPg3] = await Promise.all([
+					fetchGH(`https://api.github.com/users/${u}`),
+					fetchGH(`https://api.github.com/users/${u}/repos?per_page=100&sort=updated`),
+					fetchGH(`https://api.github.com/users/${u}/events?per_page=100`),
+					fetchGH(`https://api.github.com/users/${u}/events?per_page=100&page=2`),
+					fetchGH(`https://api.github.com/users/${u}/events?per_page=100&page=3`),
+				]) as [GitHubUser, GitHubRepo[], GitHubEvent[], GitHubEvent[], GitHubEvent[]];
 
-			profileData = { user, repos, events };
-			isLoading = false;
+				const events = [...eventsPg1, ...eventsPg2, ...eventsPg3];
+				profileData = { user, repos, events };
+				isLoading = false;
 
 			// Start ambient background
 			const langCounts: Record<string, number> = {};
@@ -327,17 +330,63 @@
 		);
 	});
 
-	let languageData = $derived.by(() => {
-		const counts: Record<string, number> = {};
-		let total = 0;
-		sortedRepos.filter(r => r.language && !r.archived && !r.fork).forEach(r => {
-			counts[r.language] = (counts[r.language] || 0) + 1;
-			total++;
+		let languageData = $derived.by(() => {
+			const counts: Record<string, number> = {};
+			let total = 0;
+			sortedRepos.filter(r => r.language && !r.archived && !r.fork).forEach(r => {
+				counts[r.language] = (counts[r.language] || 0) + 1;
+				total++;
+			});
+			const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 10);
+			const max = sorted.length ? sorted[0][1] : 1;
+			return { items: sorted, total, max };
 		});
-		const sorted = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 10);
-		const max = sorted.length ? sorted[0][1] : 1;
-		return { items: sorted, total, max };
-	});
+
+		// Contribution heatmap (last 52 weeks from events)
+		let heatmapWeeks = $derived.by(() => {
+			if (!profileData) return { weeks: [] as {days: {date: string, count: number, level: number}[]}[], maxCount: 1, totalContributions: 0 };
+			const counts: Record<string, number> = {};
+			for (const e of profileData.events) {
+				const d = e.created_at.slice(0, 10);
+				counts[d] = (counts[d] || 0) + 1;
+			}
+			const today = new Date();
+			today.setHours(0,0,0,0);
+			const endDate = new Date(today);
+			// Align endDate to Saturday
+			const endDay = endDate.getDay();
+			endDate.setDate(endDate.getDate() + (6 - endDay));
+			const startDate = new Date(endDate);
+			startDate.setDate(startDate.getDate() - 364); // 52 weeks back
+
+			let maxCount = 1;
+			let totalContributions = 0;
+			const weeks: {days: {date: string, count: number, level: number}[]}[] = [];
+			let cursor = new Date(startDate);
+			while (cursor <= endDate) {
+				const week: {days: {date: string, count: number, level: number}[]} = [];
+				for (let d = 0; d < 7; d++) {
+					const dateStr = cursor.toISOString().slice(0, 10);
+					const count = counts[dateStr] || 0;
+					if (count > maxCount) maxCount = count;
+					totalContributions += count;
+					week.push({ date: dateStr, count, level: 0 });
+					cursor.setDate(cursor.getDate() + 1);
+				}
+				weeks.push(week);
+			}
+			// Assign levels (1-4) after knowing maxCount
+			for (const week of weeks) {
+				for (const day of week.days) {
+					if (day.count === 0) day.level = 0;
+					else if (day.count <= maxCount * 0.25) day.level = 1;
+					else if (day.count <= maxCount * 0.5) day.level = 2;
+					else if (day.count <= maxCount * 0.75) day.level = 3;
+					else day.level = 4;
+				}
+			}
+			return { weeks, maxCount, totalContributions };
+		});
 
 	// ========================================
 	// CHECK URL PARAMS
@@ -583,9 +632,42 @@
 				{:else}
 					<p style="color:var(--dim);font-size:13px;">No languages detected.</p>
 				{/if}
-			</div>
+						</div>
 
-			<!-- Repositories -->
+						<!-- Contribution Heatmap -->
+						<div class="section">
+							<div class="section-title">Activity ({heatmapWeeks.totalContributions} events)</div>
+							<div class="heatmap">
+								<div class="heatmap-grid">
+									{#each heatmapWeeks.weeks as week}
+										<div class="heatmap-week">
+											{#each week.days as day}
+												<div
+													class="heatmap-day"
+													class:l0={day.level === 0}
+													class:l1={day.level === 1}
+													class:l2={day.level === 2}
+													class:l3={day.level === 3}
+													class:l4={day.level === 4}
+													title="{day.date}: {day.count} events"
+												></div>
+											{/each}
+										</div>
+									{/each}
+								</div>
+								<div class="heatmap-legend">
+									<span>Less</span>
+									<span class="hml l0"></span>
+									<span class="hml l1"></span>
+									<span class="hml l2"></span>
+									<span class="hml l3"></span>
+									<span class="hml l4"></span>
+									<span>More</span>
+								</div>
+							</div>
+						</div>
+
+						<!-- Repositories -->
 			<div class="section">
 				<div class="section-title">Repositories ({filteredRepos.length})</div>
 				{#if sortedRepos.length > 5}

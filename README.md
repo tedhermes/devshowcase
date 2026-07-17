@@ -2,16 +2,18 @@
 
 > Transform any GitHub profile into a beautiful, shareable portfolio page.
 
-[![Live Demo](https://img.shields.io/badge/demo-devshowcase--ted.netlify.app-00e5cf)](https://devshowcase-ted.netlify.app)
+[![Live Demo](https://img.shields.io/badge/demo-GitHub%20Pages-00e5cf)](https://tedhermes.github.io/devshowcase/)
 [![Tech](https://img.shields.io/badge/built%20with-SvelteKit%20%2B%20GitHub%20API-ff3e00)](https://github.com/tedhermes/devshowcase)
 
-**Live:** [devshowcase.netlify.app](https://devshowcase.netlify.app)
+**Live:** [tedhermes.github.io/devshowcase/](https://tedhermes.github.io/devshowcase/)
 
 ## Features
 
 - **GitHub Profile Viewer** — Enter any GitHub username and instantly see their profile, repositories, languages, and recent activity
+- **Contribution Heatmap** — 52-week activity grid showing event frequency (push, PR, issue, etc.)
 - **URL Parameters** — Share a profile directly: `?user=torvalds`
 - **Language Breakdown** — Visual bars showing the language distribution across repos
+- **Repo Filter** — Search repositories by name, language, or topic
 - **Ambient Background** — Dynamic canvas animation colored by your tech stack
 - **Terminal Intro** — CLI-style loading animation when fetching a profile
 - **Export to HTML** — Generate a self-contained, printable portfolio snapshot
@@ -21,8 +23,8 @@
 
 - [SvelteKit 2](https://svelte.dev/) with runes mode
 - TypeScript
-- GitHub REST API v3
-- Static adapter (deployed on Netlify)
+- GitHub REST API v3 (no auth required for public data)
+- Static adapter (deployed on GitHub Pages)
 
 ## Getting Started
 
@@ -52,18 +54,20 @@ npm run preview
 Share a profile directly via URL:
 
 ```
-https://devshowcase.netlify.app/?user=torvalds
+https://tedhermes.github.io/devshowcase/?user=torvalds
 ```
 
 ## Deployment
 
-The project is configured for static hosting on Netlify via `@sveltejs/adapter-static`. Deploy with:
+The project is configured for static hosting on GitHub Pages via `@sveltejs/adapter-static`. Deploy with:
 
 ```bash
 npm run build
+git checkout gh-pages
+cp -r build/* .
+git add . && git commit -m "deploy" && git push origin gh-pages
+git checkout main
 ```
-
-Then upload the `build/` directory to any static host.
 
 ## License
 
