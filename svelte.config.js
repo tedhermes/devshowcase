@@ -7,6 +7,9 @@ const config = {
 			filename.split(/[/\\]/).includes('node_modules') ? undefined : true
 	},
 	kit: {
+		paths: {
+			base: '/devshowcase'
+		},
 		adapter: adapter({
 			pages: 'build',
 			assets: 'build',
