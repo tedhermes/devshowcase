@@ -532,7 +532,7 @@
 					{/if}
 					<div class="meta">
 						<span class="meta-item"><span class="num">{fmt(profileData.user.public_repos)}</span> <span class="label">Repos</span></span>
-						<span class="meta-item"><span class="num">{fmt(profileData.user.followers)}</span> <span class="label">Follower</span></span>
+						<span class="meta-item"><span class="num">{fmt(profileData.user.followers)}</span> <span class="label">Followers</span></span>
 						<span class="meta-item"><span class="num">{fmt(profileData.user.following)}</span> <span class="label">Following</span></span>
 						<span class="meta-item"><span class="num">{fmt(totalStars)}</span> <span class="label">Stars</span></span>
 					</div>
